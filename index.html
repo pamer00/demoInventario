@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Inventario Pro</title>
+<style>
+:root{
+    --bg:#f3f4f6;
+    --card:#ffffff;
+    --text:#111827;
+    --primary:#4f46e5;
+    --danger:#ef4444;
+    --success:#10b981;
+}
+.dark{
+    --bg:#111827;
+    --card:#1f2937;
+    --text:#f9fafb;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+body{background:var(--bg);color:var(--text);transition:0.3s;}
+
+/* LOGIN */
+#login-screen{height:100vh;display:flex;justify-content:center;align-items:center;}
+.login-box{background:var(--card);padding:40px;border-radius:12px;width:320px;}
+.login-box input{width:100%;padding:10px;margin-bottom:15px;border:none;border-bottom:2px solid #ddd;outline:none;}
+.login-box input:focus{border-color:var(--primary);}
+.login-box button{width:100%;padding:12px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:#111827;color:white;height:100vh;position:fixed;padding:20px;}
+.sidebar button{width:100%;padding:10px;margin-bottom:10px;background:none;border:none;color:white;text-align:left;cursor:pointer;}
+.sidebar button:hover{background:#374151;}
+
+/* CONTENT */
+.content{margin-left:220px;padding:20px;}
+.header{background:var(--card);padding:15px;border-radius:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center;}
+
+/* BOTONES FLAT */
+.btn{background:var(--primary);color:white;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;font-size:14px;transition:0.2s;}
+.btn:hover{opacity:0.9;transform:translateY(-1px);}
+.btn-light{background:#e5e7eb;color:#111;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;transition:0.2s;}
+.btn-light:hover{opacity:0.9;transform:translateY(-1px);}
+.btn-success{background:var(--success);color:white;}
+.btn-danger{background:var(--danger);color:white;}
+
+/* BOTONES DE ACCIONES (editar / borrar) */
+.edit{background:#3b82f6;color:white;border:none;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:12px;transition:0.2s;}
+.edit:hover{opacity:0.9;transform:translateY(-1px);}
+.delete{background:#ef4444;color:white;border:none;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:12px;transition:0.2s;}
+.delete:hover{opacity:0.9;transform:translateY(-1px);}
+
+/* TOOLS */
+.tools{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;}
+.tools input,.tools select{padding:10px;border-radius:6px;border:1px solid #ccc;}
+
+/* TABLE */
+.table-container{overflow-x:auto;}
+table{width:100%;margin-top:20px;border-collapse:collapse;background:var(--card);min-width:700px;}
+th,td{padding:12px;border-bottom:1px solid #eee;}
+tr:hover{background:rgba(0,0,0,0.04);}
+.actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* MODAL */
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);display:none;justify-content:center;align-items:center;}
+.modal-content{background:var(--card);padding:20px;border-radius:10px;width:400px;max-width:90%;}
+
+/* FORM */
+.field input,.field select{width:100%;padding:10px;margin-bottom:10px;border:none;border-bottom:2px solid #ddd;outline:none;}
+.field input:focus,.field select:focus{border-color:var(--primary);}
+
+/* REPORTES */
+.reports{display:none;gap:10px;margin-top:20px;flex-wrap:wrap;}
+.card{background:var(--card);padding:15px;border-radius:10px;min-width:150px;flex:1;}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+    .sidebar{position:relative;width:100%;height:auto;display:flex;justify-content:space-around;}
+    .content{margin-left:0;}
+    .actions button{flex:1;font-size:12px;padding:6px 0;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+<div class="login-box">
+<h2>Login</h2>
+<input id="username" placeholder="Usuario">
+<input id="password" type="password" placeholder="Contraseña">
+<button onclick="login()">Entrar</button>
+</div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+<div class="sidebar">
+<button onclick="showSection('inventory')">📦 Inventario</button>
+<button onclick="showSection('reports')">📊 Reportes</button>
+<button onclick="logout()">🚪 Salir</button>
+</div>
+
+<div class="content">
+
+<div class="header">
+<h2 id="title">Inventario</h2>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+<select id="currency" onchange="renderTable()">
+<option value="USD">USD</option>
+<option value="EUR">EUR</option>
+<option value="COP">COP</option>
+</select>
+<button class="btn" onclick="openModal()">+ Nuevo</button>
+<button class="btn-light" id="darkModeBtn" onclick="toggleDark()">🌙 Dark Mode</button>
+</div>
+</div>
+
+<div class="tools">
+<input id="search" placeholder="Buscar..." oninput="renderTable()">
+<select id="filter" onchange="renderTable()">
+<option value="">Todas</option>
+</select>
+</div>
+
+<!-- REPORTES -->
+<div class="reports" id="reportsSection">
+<div class="card">Total productos: <span id="totalProducts">0</span></div>
+<div class="card">Valor total: <span id="totalValue">$0</span></div>
+</div>
+
+<div id="inventorySection">
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>ID</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="modal">
+<div class="modal-content">
+<h3>Producto</h3>
+<div class="field">
+<input id="name" placeholder="Nombre">
+<input id="category" placeholder="Categoría">
+<input id="price" type="number" placeholder="Precio">
+<input id="stock" type="number" placeholder="Stock">
+<select id="productCurrency">
+<option value="USD">USD</option>
+<option value="EUR">EUR</option>
+<option value="COP">COP</option>
+</select>
+</div>
+<div style="display:flex;justify-content:flex-end;gap:10px;">
+<button class="btn-light" onclick="closeModal()">Cancelar</button>
+<button class="btn" onclick="saveProduct()">Guardar</button>
+</div>
+</div>
+</div>
+
+<script>
+let products=[];
+
+/* MONEDAS */
+const rates={USD:1,EUR:0.9,COP:4000};
+function formatMoney(value,currency){return new Intl.NumberFormat('es-ES',{style:'currency',currency:currency,maximumFractionDigits:0}).format(value);}
+function convert(price,from,to){return (price/rates[from])*rates[to];}
+
+/* LOGIN */
+function login(){
+const user=document.getElementById("username").value;
+const pass=document.getElementById("password").value;
+if(user==="admin" && pass==="1234"){
+document.getElementById("login-screen").style.display="none";
+document.getElementById("app").style.display="block";
+}else alert("Usuario o contraseña incorrectos");
+}
+function logout(){document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";}
+
+/* DARK MODE */
+function toggleDark(){document.body.classList.toggle("dark");}
+
+/* CRUD */
+function saveProduct(){
+let p={
+id:Date.now(),
+name:document.getElementById("name").value,
+category:document.getElementById("category").value,
+price:+document.getElementById("price").value,
+stock:+document.getElementById("stock").value,
+currency:document.getElementById("productCurrency").value
+};
+products.push(p);
+updateFilter();
+renderTable();
+closeModal();
+}
+
+function renderTable(){
+let cur=document.getElementById("currency").value;
+let search=document.getElementById("search").value.toLowerCase();
+let filterCat=document.getElementById("filter").value;
+let totalVal=0;
+table.innerHTML="";
+products.forEach((p,i)=>{
+if((!filterCat || p.category===filterCat) && (!search || p.name.toLowerCase().includes(search))){
+let price=convert(p.price,p.currency,cur);
+totalVal+=price*p.stock;
+table.innerHTML+=`
+<tr>
+<td>${p.id}</td>
+<td>${p.name}</td>
+<td>${p.category}</td>
+<td>${formatMoney(price,cur)}</td>
+<td>${p.stock}</td>
+<td class="actions">
+<button class="edit" onclick="editProduct(${i})">Editar</button>
+<button class="delete" onclick="deleteProduct(${i})">Borrar</button>
+</td>
+</tr>`;
+}
+});
+document.getElementById("totalProducts").innerText=products.length;
+document.getElementById("totalValue").innerText=formatMoney(totalVal,cur);
+}
+
+function deleteProduct(i){
+if(confirm("¿Deseas eliminar este producto?")){products.splice(i,1);renderTable();}
+}
+
+function openModal(){document.getElementById("modal").style.display="flex";}
+function closeModal(){document.getElementById("modal").style.display="none";}
+
+function updateFilter(){
+let cats=[...new Set(products.map(p=>p.category))];
+filter.innerHTML='<option value="">Todas</option>';
+cats.forEach(c=>filter.innerHTML+=`<option>${c}</option>`);
+}
+
+function editProduct(i){
+let p=products[i];
+document.getElementById("name").value=p.name;
+document.getElementById("category").value=p.category;
+document.getElementById("price").value=p.price;
+document.getElementById("stock").value=p.stock;
+document.getElementById("productCurrency").value=p.currency;
+openModal();
+products.splice(i,1);
+}
+
+function showSection(section){
+if(section==='inventory'){
+document.getElementById("inventorySection").style.display='block';
+document.getElementById("reportsSection").style.display='flex';
+document.getElementById("title").innerText='Inventario';
+}else{
+document.getElementById("inventorySection").style.display='none';
+document.getElementById("reportsSection").style.display='flex';
+document.getElementById("title").innerText='Reportes';
+renderTable();
+}
+}
+</script>
+
+</body>
+</html>
